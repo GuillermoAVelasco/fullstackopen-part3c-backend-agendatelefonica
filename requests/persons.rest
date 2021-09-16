@@ -1,0 +1,15 @@
+### delete
+DELETE  http://localhost:3001/api/persons/2
+
+### listado de todo
+GET  http://localhost:3001/api/persons
+
+### creacion de persona
+
+POST  http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+    "name":"nuevo",
+    "number":"123"
+}
