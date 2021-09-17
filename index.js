@@ -9,25 +9,7 @@ const Person = require('./models/person')
 
 app.use(express.json())
 app.use(express.static('build'))
-/*
-let persons= [
-    {
-      "name": "b",
-      "number": "3",
-      "id": 2
-    },
-    {
-      "name": "c",
-      "number": "5",
-      "id": 3
-    },
-    {
-      "name": "e",
-      "number": "1",
-      "id": 4
-    }
-]
-*/
+
 morgan.token('body', function(req, res, param) {
     return JSON.stringify(req.body);
 });
@@ -35,7 +17,9 @@ morgan.token('body', function(req, res, param) {
 app.use(morgan(':method :url :status :req[content-length]  - :response-time ms :body'))
 
 app.get('/info',(req,res)=>{
-    res.send(`Phonebook has info for ${persons.length} people <br> ${new Date()}`)
+    Person.find({}).then(persons => {
+        res.send(`Phonebook has info for ${persons.length} people <br> ${new Date()}`)
+    })    
 })
 
 app.get('/api/persons',(request,response)=>{
@@ -50,10 +34,12 @@ app.get('/api/persons/:id',(request,response)=>{
     })
 })
 
-app.delete('/api/persons/:id',(req,res)=>{
-    const id= Number(req.params.id)
-    persons=persons.filter(pers=>pers.id!==id)
-    res.status(204).end()
+app.delete('/api/persons/:id',(req,res,next)=>{
+    Person.findByIdAndRemove(req.params.id)
+    .then(result=>{
+        res.status(204).end()
+    })
+    .catch(error=> next(error))
 })
 
 const getFindName=(name)=>{
@@ -87,6 +73,39 @@ app.post('/api/persons',(request,response)=>{
       response.json(savedPerson)
     })
 })
+
+app.put('/api/persons/:id', (request, response, next) => {
+    const {name,number} = request.body
+  
+    const person = {
+      number
+    }
+  
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+      .then(updatedPerson => {
+        response.json(updatedPerson)
+      })
+      .catch(error => next(error))  
+  })
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
+  
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } 
+  
+    next(error)
+}
+  
+app.use(errorHandler)
+
 
 PORT=process.env.PORT || 3001
 app.listen(PORT,()=>{
